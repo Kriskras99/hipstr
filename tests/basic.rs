@@ -5,13 +5,13 @@ use hipstr::HipStr;
 
 #[inline(never)]
 pub fn new(slice: &str) -> HipStr<'static> {
-    HipStr::from(slice)
+    HipStr::from(slice).into_owned()
 }
 
 #[inline(never)]
 pub fn new_inline(slice: &str) -> HipStr<'static> {
     assert!(slice.len() < HipStr::inline_capacity());
-    HipStr::from(slice)
+    HipStr::from(slice).into_owned()
 }
 
 #[test]

@@ -115,7 +115,7 @@ fn test_from_slice() {
     for size in [0, 1, INLINE_CAPACITY, INLINE_CAPACITY + 1, 256, 1024] {
         let string = HipOsStr::from(&s[..size]);
         assert_eq!(size <= INLINE_CAPACITY, string.is_inline());
-        assert_eq!(size > INLINE_CAPACITY, string.is_allocated());
+        assert_eq!(size > INLINE_CAPACITY, string.is_borrowed());
         assert_eq!(string.len(), size);
     }
 }
@@ -141,7 +141,7 @@ fn test_as_slice() {
     // allocated
     {
         let s = "A".repeat(42);
-        let a = HipOsStr::from(s.as_str());
+        let a = HipOsStr::from(s.to_string());
         assert!(!a.is_borrowed());
         assert!(!a.is_inline());
         assert!(a.is_allocated());
@@ -196,7 +196,7 @@ fn test_into_static() {
     assert_eq!(a.into_borrowed(), Err(b));
 
     // heap
-    let a = HipOsStr::from("a".repeat(42).as_str());
+    let a = HipOsStr::from("a".repeat(42).to_string());
     let b = a.clone();
     assert_eq!(a.into_borrowed(), Err(b));
 }
@@ -306,13 +306,6 @@ fn test_to_owned() {
     let a = a.into_owned();
     drop(v);
     assert_eq!(a, &r[0..2]);
-
-    let v = r.clone();
-    let a = HipOsStr::from(&v[..]);
-    drop(v);
-    let p = a.as_ptr();
-    let a = a.into_owned();
-    assert_eq!(a.as_ptr(), p);
 }
 
 #[test]

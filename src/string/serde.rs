@@ -1,9 +1,10 @@
+use core::marker::PhantomData;
+
 use serde::{de, Deserialize, Serialize};
 
 use super::HipStr;
-use crate::alloc::borrow::Cow;
 use crate::alloc::fmt;
-use crate::alloc::string::{String, ToString};
+use crate::alloc::string::String;
 use crate::Backend;
 
 impl<'borrow, B> Serialize for HipStr<'borrow, B>
@@ -19,7 +20,7 @@ where
     }
 }
 
-impl<'de, 'borrow, B> Deserialize<'de> for HipStr<'borrow, B>
+impl<'de: 'borrow, 'borrow, B> Deserialize<'de> for HipStr<'borrow, B>
 where
     B: Backend,
 {
@@ -28,16 +29,25 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        Ok(Self::from(s))
+        deserializer.deserialize_str(HipStrVisitor::default())
     }
 }
 
 /// Minimal string cow visitor
-struct CowVisitor;
+struct HipStrVisitor<B: Backend> {
+    phantom: PhantomData<B>,
+}
 
-impl<'de> de::Visitor<'de> for CowVisitor {
-    type Value = Cow<'de, str>;
+impl<B: Backend> Default for HipStrVisitor<B> {
+    fn default() -> Self {
+        Self {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'de, B: Backend> de::Visitor<'de> for HipStrVisitor<B> {
+    type Value = HipStr<'de, B>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a string")
@@ -47,50 +57,22 @@ impl<'de> de::Visitor<'de> for CowVisitor {
     where
         E: de::Error,
     {
-        Ok(Cow::Borrowed(v))
+        Ok(HipStr::from(v))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
-        Ok(Cow::Owned(v.to_string()))
+        Ok(HipStr::from(v).into_owned())
     }
 
     fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
-        Ok(Cow::Owned(v))
+        Ok(HipStr::from(v))
     }
-}
-
-/// Deserializes a `HipStr` as a borrow if possible.
-///
-/// ```ignore
-/// use hipstr::HipStr;
-/// #[derive(Deserialize)]
-/// struct MyStruct<'a> {
-///     #[serde(borrow, deserialize_with = "hipstr::string::serde::borrow_deserialize")]
-///     field: HipStr<'a>,
-/// }
-/// # fn main() {
-/// let s: MyStruct = serde_json::from_str(r#"{"field": "abc"}"#).unwrap();
-/// assert!(s.field.is_borrowed());
-/// # }
-/// ```
-///
-/// # Errors
-///
-/// Returns a deserializer if either the serialization is incorrect or an unexpected value is encountered.
-#[inline]
-pub fn borrow_deserialize<'de: 'a, 'a, D, B>(deserializer: D) -> Result<HipStr<'a, B>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-    B: Backend,
-{
-    let cow: Cow<'de, str> = deserializer.deserialize_str(CowVisitor)?;
-    Ok(HipStr::from(cow))
 }
 
 #[cfg(test)]

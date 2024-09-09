@@ -27,13 +27,14 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 [dependencies]
 bstr = { version = "1.9.1", optional = true, features = ["alloc"] }
+ownable.workspace = true
 serde = { version = "1.0.69", optional = true, default-features = false, features = [] }
 serde_bytes = { version = "0.11.5", optional = true, default-features = false, features = [
     "alloc",
 ] }
 
-[workspace]
-members = ['string-comparison']
+# [workspace]
+# members = ['string-comparison']
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }

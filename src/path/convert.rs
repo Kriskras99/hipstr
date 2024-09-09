@@ -59,32 +59,32 @@ where
 // Infallible conversions
 // From
 
-impl<'borrow, B> From<&Path> for HipPath<'borrow, B>
+impl<'borrow, B> From<&'borrow Path> for HipPath<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &Path) -> Self {
+    fn from(value: &'borrow Path) -> Self {
         Self(HipOsStr::from(value.as_os_str()))
     }
 }
 
-impl<'borrow, B> From<&str> for HipPath<'borrow, B>
+impl<'borrow, B> From<&'borrow str> for HipPath<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &str) -> Self {
+    fn from(value: &'borrow str) -> Self {
         Self(HipOsStr::from(value))
     }
 }
 
-impl<'borrow, B> From<&OsStr> for HipPath<'borrow, B>
+impl<'borrow, B> From<&'borrow OsStr> for HipPath<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &OsStr) -> Self {
+    fn from(value: &'borrow OsStr) -> Self {
         Self(HipOsStr::from(value))
     }
 }

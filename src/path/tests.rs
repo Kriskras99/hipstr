@@ -92,7 +92,7 @@ fn test_from_slice() {
     for size in [0, 1, INLINE_CAPACITY, INLINE_CAPACITY + 1, 256, 1024] {
         let path = HipPath::from(&s[..size]);
         assert_eq!(size <= INLINE_CAPACITY, path.is_inline());
-        assert_eq!(size > INLINE_CAPACITY, path.is_allocated());
+        assert_eq!(size > INLINE_CAPACITY, path.is_borrowed());
         assert_eq!(path.0.len(), size);
     }
 }
@@ -118,7 +118,7 @@ fn test_as_slice() {
     // allocated
     {
         let s = "A".repeat(42);
-        let a = HipPath::from(s.as_str());
+        let a = HipPath::from(s.to_string());
         assert!(!a.is_borrowed());
         assert!(!a.is_inline());
         assert!(a.is_allocated());
@@ -173,7 +173,7 @@ fn test_into_static() {
     assert_eq!(a.into_borrowed(), Err(b));
 
     // heap
-    let a = HipPath::from("a".repeat(42).as_str());
+    let a = HipPath::from("a".repeat(42).to_string());
     let b = a.clone();
     assert_eq!(a.into_borrowed(), Err(b));
 }
@@ -309,13 +309,6 @@ fn test_to_owned() {
     let a = a.into_owned();
     drop(v);
     assert_eq!(a, Path::new(&r[0..2]));
-
-    let v = r.clone();
-    let a = HipPath::from(&v[..]);
-    drop(v);
-    let p = a.0.as_ptr();
-    let a = a.into_owned();
-    assert_eq!(a.0.as_ptr(), p);
 }
 
 #[test]

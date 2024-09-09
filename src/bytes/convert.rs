@@ -19,22 +19,22 @@ where
 
 // Infallible conversions
 
-impl<'borrow, B> From<&[u8]> for HipByt<'borrow, B>
+impl<'borrow, B> From<&'borrow [u8]> for HipByt<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &[u8]) -> Self {
+    fn from(value: &'borrow [u8]) -> Self {
         Self(Raw::from_slice(value))
     }
 }
 
-impl<'borrow, B, const N: usize> From<&[u8; N]> for HipByt<'borrow, B>
+impl<'borrow, B, const N: usize> From<&'borrow [u8; N]> for HipByt<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &[u8; N]) -> Self {
+    fn from(value: &'borrow [u8; N]) -> Self {
         Self(Raw::from_slice(value))
     }
 }

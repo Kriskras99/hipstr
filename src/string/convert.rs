@@ -53,12 +53,12 @@ where
 
 // Infallible conversions
 
-impl<'borrow, B> From<&str> for HipStr<'borrow, B>
+impl<'borrow, B> From<&'borrow str> for HipStr<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &str) -> Self {
+    fn from(value: &'borrow str) -> Self {
         Self(HipByt::from(value.as_bytes()))
     }
 }
@@ -180,14 +180,14 @@ where
     }
 }
 
-impl<'a, 'borrow, B> TryFrom<&'a [u8]> for HipStr<'borrow, B>
+impl<'borrow, B> TryFrom<&'borrow [u8]> for HipStr<'borrow, B>
 where
     B: Backend,
 {
     type Error = core::str::Utf8Error;
 
     #[inline]
-    fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
+    fn try_from(value: &'borrow [u8]) -> Result<Self, Self::Error> {
         Ok(Self::from(core::str::from_utf8(value)?))
     }
 }

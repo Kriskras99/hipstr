@@ -1,12 +1,12 @@
+use ownable::IntoOwned;
 use serde::Deserialize;
 use serde_test::{assert_de_tokens, assert_de_tokens_error, assert_tokens, Token};
 
-use super::borrow_deserialize;
 use crate::HipStr;
 
-#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[derive(IntoOwned, Deserialize, PartialEq, Eq, Debug)]
 struct MyStruct<'a> {
-    #[serde(borrow, deserialize_with = "borrow_deserialize")]
+    #[serde(borrow)]
     field: HipStr<'a>,
 }
 
@@ -35,14 +35,18 @@ fn test_serde_err() {
 fn test_serde_borrow() {
     use serde_json::Value;
 
+    let short_v = Value::from("abcdefghijk");
+
     let v = Value::from("abcdefghijklmnopqrstuvwxyz");
-    let h1: HipStr = borrow_deserialize(&v).unwrap();
+    let h1: HipStr = Deserialize::deserialize(&short_v).unwrap();
     let h2: HipStr = Deserialize::deserialize(&v).unwrap();
-    assert!(h1.is_borrowed());
-    assert!(!h2.is_borrowed());
+    assert!(h1.is_inline());
+    assert!(h2.is_borrowed());
 
     let s: MyStruct = serde_json::from_str(r#"{"field": "abcdefghijklmnopqrstuvwxyz"}"#).unwrap();
     assert!(s.field.is_borrowed());
+    let s = s.into_owned();
+    assert!(!s.field.is_borrowed());
 
     assert_de_tokens(
         &MyStruct {

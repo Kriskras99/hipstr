@@ -1774,6 +1774,17 @@ where
     }
 }
 
+impl<B> ownable::traits::IntoOwned for HipStr<'_, B>
+where
+    B: Backend,
+{
+    type Owned = HipStr<'static, B>;
+
+    fn into_owned(self) -> Self::Owned {
+        self.into_owned()
+    }
+}
+
 /// Slice error kinds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SliceErrorKind {

@@ -48,12 +48,12 @@ where
 // Infallible conversions
 // From
 
-impl<'borrow, B> From<&str> for HipOsStr<'borrow, B>
+impl<'borrow, B> From<&'borrow str> for HipOsStr<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &str) -> Self {
+    fn from(value: &'borrow str) -> Self {
         Self(HipByt::from(value.as_bytes()))
     }
 }
@@ -78,12 +78,12 @@ where
     }
 }
 
-impl<'borrow, B> From<&OsStr> for HipOsStr<'borrow, B>
+impl<'borrow, B> From<&'borrow OsStr> for HipOsStr<'borrow, B>
 where
     B: Backend,
 {
     #[inline]
-    fn from(value: &OsStr) -> Self {
+    fn from(value: &'borrow OsStr) -> Self {
         Self(HipByt::from(value.as_encoded_bytes()))
     }
 }

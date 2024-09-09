@@ -291,13 +291,13 @@ impl<'borrow, B: Backend> Raw<'borrow, B> {
     ///
     /// Will normalize the representation depending on the size of the slice.
     #[inline]
-    pub fn from_slice(bytes: &[u8]) -> Self {
+    pub fn from_slice(bytes: &'borrow [u8]) -> Self {
         let len = bytes.len();
         if len <= INLINE_CAPACITY {
             // SAFETY: length checked above
             unsafe { Self::inline_unchecked(bytes) }
         } else {
-            Self::from_vec(bytes.to_vec())
+            Self::borrowed(bytes)
         }
     }
 
@@ -615,9 +615,23 @@ impl<'borrow, B: Backend> Raw<'borrow, B> {
         }
     }
 
+    /*
+        pub fn from_slice(bytes: &'borrow[u8]) -> Self {
+        let len = bytes.len();
+        if len <= INLINE_CAPACITY {
+            // SAFETY: length checked above
+            unsafe { Self::inline_unchecked(bytes) }
+        } else {
+            Self::borrowed(bytes)
+        }
+    }
+
+     */
+
     /// Makes the data owned, copying it if it's not already owned.
     #[inline]
     pub fn into_owned(self) -> Raw<'static, B> {
+        let len = self.len();
         let tag = self.tag();
         let old = self.union_move(); // self is not dropped!
 
@@ -625,7 +639,13 @@ impl<'borrow, B: Backend> Raw<'borrow, B> {
         unsafe {
             match tag {
                 Tag::Allocated => Raw::from_allocated(old.allocated),
-                Tag::Borrowed => Raw::from_slice(old.borrowed.as_slice()),
+                Tag::Borrowed => {
+                    if len <= INLINE_CAPACITY {
+                        Raw::inline_unchecked(old.borrowed.as_slice())
+                    } else {
+                        Raw::from_vec(old.borrowed.as_slice().to_vec())
+                    }
+                }
                 Tag::Inline => Raw::from_inline(old.inline),
             }
         }
@@ -643,7 +663,12 @@ impl<'borrow, B: Backend> Raw<'borrow, B> {
                 // SAFETY: representation is checked above
                 let borrowed = unsafe { old.borrowed };
 
-                *self = Self::from_slice(borrowed.as_slice());
+                if borrowed.len() <= INLINE_CAPACITY {
+                    // SAFETY: len is checked above
+                    *self = unsafe { Self::inline_unchecked(borrowed.as_slice()) };
+                } else {
+                    *self = Self::from_vec(borrowed.as_slice().to_vec());
+                }
             }
             Tag::Allocated => {
                 // SAFETY: representation checked above
@@ -778,7 +803,7 @@ impl<'borrow, B: Backend> Raw<'borrow, B> {
     /// Do nothing is `new_len` is greater than the current length.
     pub fn truncate(&mut self, new_len: usize) {
         if new_len < self.len() {
-            if self.is_allocated() && new_len <= INLINE_CAPACITY {
+            if !self.is_inline() && new_len <= INLINE_CAPACITY {
                 let new =
                     unsafe { Self::inline_unchecked(self.as_slice().get_unchecked(..new_len)) };
                 *self = new;

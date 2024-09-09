@@ -142,7 +142,7 @@ fn test_from_slice() {
     for size in [0, 1, INLINE_CAPACITY, INLINE_CAPACITY + 1, 256, 1024] {
         let h = H::from(&s[..size]);
         assert_eq!(size <= INLINE_CAPACITY, h.is_inline());
-        assert_eq!(size > INLINE_CAPACITY, h.is_allocated());
+        assert_eq!(size > INLINE_CAPACITY, h.is_borrowed());
         assert_eq!(h.len(), size);
     }
 }
@@ -249,7 +249,7 @@ fn test_into_borrowed() {
     assert_eq!(a.into_borrowed(), Err(b));
 
     // heap
-    let a = H::from(MEDIUM);
+    let a = H::from(MEDIUM.to_vec());
     let b = a.clone();
     assert_eq!(a.into_borrowed(), Err(b));
 }
@@ -266,7 +266,7 @@ fn test_as_mut_slice() {
     assert_eq!(a.as_mut_slice().unwrap(), ABC);
 
     // heap
-    let mut a = H::from(MEDIUM);
+    let mut a = H::from(MEDIUM.to_vec());
     {
         let sl = a.as_mut_slice().unwrap();
         assert_eq!(sl, MEDIUM);
@@ -303,7 +303,7 @@ fn test_to_mut_slice_inline() {
 
 #[test]
 fn test_to_mut_slice_allocated() {
-    let mut a = H::from(MEDIUM);
+    let mut a = H::from(MEDIUM.to_vec());
     let p = a.as_ptr();
     assert!(a.is_allocated());
     {
@@ -358,7 +358,7 @@ fn test_slice_borrowed() {
 #[test]
 fn test_slice_allocated() {
     let v = MEDIUM;
-    let s = H::from(v);
+    let s = H::from(v.to_vec());
     assert!(s.is_allocated());
 
     let sl1 = s.slice(4..30);
@@ -667,7 +667,7 @@ fn test_shrink_to_fit() {
     assert!(h.is_inline());
     assert_eq!(h, &MEDIUM[..INLINE_CAPACITY]);
 
-    let mut h = H::from(MEDIUM);
+    let mut h = H::from(MEDIUM.to_vec());
     let h2 = h.clone();
     h.truncate(INLINE_CAPACITY + 1);
     assert_eq!(h.as_ptr(), h2.as_ptr());
@@ -711,7 +711,7 @@ fn test_shrink_to() {
     assert_eq!(h, &MEDIUM[..INLINE_CAPACITY]);
 
     // allocated that reallocates
-    let mut h = H::from(MEDIUM);
+    let mut h = H::from(MEDIUM.to_vec());
     let h2 = h.clone();
     h.truncate(INLINE_CAPACITY + 1);
     assert_eq!(h.as_ptr(), h2.as_ptr());
@@ -743,7 +743,7 @@ fn test_truncate() {
     h.truncate(1);
     assert_eq!(h, &MEDIUM[..1]);
 
-    let mut h = H::from(MEDIUM);
+    let mut h = H::from(MEDIUM.to_vec());
     h.truncate(INLINE_CAPACITY + 1);
     assert!(h.is_allocated());
     assert_eq!(h, &MEDIUM[..(INLINE_CAPACITY + 1)]);
@@ -898,14 +898,14 @@ fn test_push_slice_inline() {
 #[test]
 fn test_push_slice_allocated() {
     // allocated, unique
-    let mut a = H::from(MEDIUM);
+    let mut a = H::from(MEDIUM.to_vec());
     assert!(a.is_allocated());
     a.push_slice(ABC);
     assert_eq!(&a[0..42], MEDIUM);
     assert_eq!(&a[42..], ABC);
 
     // allocated, not unique
-    let mut a = H::from(MEDIUM);
+    let mut a = H::from(MEDIUM.to_vec());
     assert!(a.is_allocated());
     let pa = a.as_ptr();
     let b = a.clone();
@@ -918,7 +918,7 @@ fn test_push_slice_allocated() {
 
     // allocated, unique but sliced
     let mut a = {
-        let x = H::from(MEDIUM);
+        let x = H::from(MEDIUM.to_vec());
         x.slice(1..39)
     };
     assert!(a.is_allocated());
@@ -953,13 +953,6 @@ fn test_to_owned() {
     let a = a.into_owned();
     drop(v);
     assert_eq!(a, [42, 42]);
-
-    let v = vec![42; 42];
-    let a = H::from(&v[..]);
-    drop(v);
-    let p = a.as_ptr();
-    let a = a.into_owned();
-    assert_eq!(a.as_ptr(), p);
 }
 
 #[test]
